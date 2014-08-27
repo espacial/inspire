@@ -28,7 +28,7 @@ from invenio.urlutils import redirect_to_url
 from invenio.config import CFG_TMPSHAREDDIR
 
 
-def new_dataset(req, title=None, paper=None, authors=None, description=None, dataset_file=None, doi="", submitter_name=None, submitter_email=None):
+def new_dataset(req, title=None, paper=None, authors=None, description=None, dataset_file=None, doi="", submitter_name=None, submitter_email=None, comments=None):
     """
     Form handler for dataset submissions
     """
@@ -40,6 +40,7 @@ def new_dataset(req, title=None, paper=None, authors=None, description=None, dat
     description = wash_url_argument(description, "str")
     submitter_name = wash_url_argument(submitter_name, "str")
     submitter_email = wash_url_argument(submitter_email, "str")
+    comments = wash_url_argument(comments, "str")
 
     dataset_file = wash_url_argument(dataset_file, "str")
     tmp_id = str(uuid.uuid1())
@@ -48,7 +49,7 @@ def new_dataset(req, title=None, paper=None, authors=None, description=None, dat
         f.write(req.form["dataset_file"].file.read())
         f.close()
 
-    res = submit_email_ticket(title, paper, authors, description, tmp_id, req.form["dataset_file"].filename, doi, submitter_name, submitter_email)
+    res = submit_email_ticket(title, paper, authors, description, tmp_id, req.form["dataset_file"].filename, doi, submitter_name, submitter_email, comments)
 
     if res:
         return redirect_to_url(req, "%s/data_submission.py/data_submission_success?title=%s" % (CFG_SITE_URL, title))
@@ -56,7 +57,7 @@ def new_dataset(req, title=None, paper=None, authors=None, description=None, dat
         return redirect_to_url(req, "%s/data_submission.py/data_submission_fail?title=%s" % (CFG_SITE_URL, title))
 
 
-def submit_email_ticket(title, paper, authors, description, dataset_file, dataset_name, doi, submitter_name, submitter_email):
+def submit_email_ticket(title, paper, authors, description, dataset_file, dataset_name, doi, submitter_name, submitter_email, comments):
     """
     Submits a multipart email containing the metadata and the dataset file
     """
@@ -67,7 +68,7 @@ def submit_email_ticket(title, paper, authors, description, dataset_file, datase
     from email import Encoders
     from invenio.config import CFG_MISCUTIL_SMTP_HOST, CFG_MISCUTIL_SMTP_PORT
 
-    curators = ("laura.rueda@cern.ch", "particia.herterich@cern.ch", "artemis.lavasa@cern.ch")
+    curators = ("laura.rueda@cern.ch", "particia.herterich@cern.ch", "sunje.dallmeier-tiessen@cern.ch")
     
     msg = MIMEMultipart()
     msg['Subject'] = "New dataset submission from %s" % (submitter_name) 
@@ -83,7 +84,8 @@ def submit_email_ticket(title, paper, authors, description, dataset_file, datase
 
     Submitter: %s
     E-mail: %s
-    """ % (title, paper, authors, description, doi, submitter_name, submitter_email)
+    Comments: %s
+    """ % (title, paper, authors, description, doi, submitter_name, submitter_email, comments)
     part1 = MIMEText(text, 'plain')
 
     part2 = MIMEBase('application', 'octet-stream')
